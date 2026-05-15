@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CareFlow – Urgent Care MVP</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --text-xs: 0.75rem; --text-sm: 0.875rem; --text-base: 1rem; --text-lg: 1.125rem; --text-xl: 1.5rem;
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem; --space-5: 1.25rem;
+      --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem;
+      --color-bg: #f7f6f2; --color-surface: #f9f8f5; --color-surface-2: #fbfbf9; --color-surface-offset: #f3f0ec;
+      --color-border: #d4d1ca; --color-divider: #dcd9d5; --color-text: #28251d; --color-text-muted: #7a7974;
+      --color-text-faint: #bab9b4; --color-text-inverse: #f9f8f4; --color-primary: #01696f; --color-primary-hover: #0c4e54;
+      --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem; --radius-full: 9999px;
+      --shadow-sm: 0 1px 2px rgba(40,37,29,0.06); --shadow-md: 0 4px 12px rgba(40,37,29,0.08);
+      --font-body: 'Satoshi', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    [data-theme="dark"] {
+      --color-bg: #171614; --color-surface: #1c1b19; --color-surface-2: #201f1d; --color-surface-offset: #22211f;
+      --color-border: #393836; --color-divider: #262523; --color-text: #cdccca; --color-text-muted: #797876;
+      --color-text-faint: #5a5957; --color-text-inverse: #2b2a28; --color-primary: #4f98a3; --color-primary-hover: #227f8b;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.2); --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    body {
+      min-height: 100vh; font-family: var(--font-body); font-size: var(--text-base);
+      color: var(--color-text); background: var(--color-bg); line-height: 1.5;
+    }
+    button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+    .app-shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    .sidebar {
+      background: var(--color-surface); border-right: 1px solid var(--color-border);
+      padding: var(--space-6) var(--space-4); display: flex; flex-direction: column; gap: var(--space-6);
+    }
+    .logo { display: flex; align-items: center; gap: var(--space-3); }
+    .logo svg { width: 30px; height: 30px; color: var(--color-primary); }
+    .logo-title { font-weight: 700; font-size: var(--text-lg); }
+    .logo-sub { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .nav-section { display: flex; flex-direction: column; gap: var(--space-2); }
+    .nav-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); margin-bottom: var(--space-1); }
+    .nav-item {
+      width: 100%; display: flex; align-items: center; gap: var(--space-3);
+      padding: var(--space-3); border-radius: var(--radius-md); font-size: var(--text-sm);
+      color: var(--color-text); text-align: left;
+    }
+    .nav-item span.nav-icon {
+      width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid currentColor;
+    }
+    .nav-item.active {
+      background: rgba(1,105,111,0.08); color: var(--color-primary); font-weight: 600;
+    }
+    .nav-item:hover { background: var(--color-surface-offset); }
+    .sidebar-footer { margin-top: auto; font-size: var(--text-xs); color: var(--color-text-muted); }
+
+    .main { display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      position: sticky; top: 0; z-index: 5; background: rgba(247,246,242,0.9);
+      backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-divider);
+      padding: var(--space-4) var(--space-6); display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;
+    }
+    .topbar-left { display: flex; flex-direction: column; gap: var(--space-1); }
+    .page-title { font-size: var(--text-xl); font-weight: 700; }
+    .page-subtitle { font-size: var(--text-sm); color: var(--color-text-muted); }
+    .topbar-actions { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+    .pill { display: inline-flex; align-items: center; gap: var(--space-2); border-radius: var(--radius-full); border: 1px solid var(--color-border); padding: var(--space-1) var(--space-3); font-size: var(--text-xs); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+      border-radius: var(--radius-md); padding: 0.6rem 1rem; font-size: var(--text-sm);
+      min-height: 36px; border: 1px solid transparent; transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+    }
+    .btn-primary { background: var(--color-primary); color: var(--color-text-inverse); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-ghost { border-color: var(--color-border); background: var(--color-surface); }
+    .btn-ghost:hover { background: var(--color-surface-offset); }
+
+    .content { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .panel {
+      background: var(--color-surface); border-radius: var(--radius-xl);
+      border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);
+      overflow: hidden; margin-bottom: var(--space-4);
+    }
+    .panel-header {
+      padding: var(--space-4) var(--space-5) var(--space-3);
+      border-bottom: 1px solid var(--color-divider);
+      display: flex; justify-content: space-between; align-items: center; gap: var(--space-3);
+    }
+    .panel-title-wrap { display: flex; flex-direction: column; gap: var(--space-1); }
+    .panel-title { font-size: var(--text-lg); font-weight: 600; }
+    .panel-note { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .panel-body { padding: var(--space-4) var(--space-5); }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+    .metric-card {
+      border-radius: var(--radius-lg); border: 1px dashed var(--color-border);
+      background: var(--color-surface-2); padding: var(--space-3);
+      display: flex; flex-direction: column; gap: var(--space-1);
+    }
+    .metric-label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .metric-value { font-size: var(--text-lg); font-weight: 600; }
+    .metric-foot { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+    .toolbar { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); }
+    .input-mock, .select-mock {
+      min-height: 40px; border-radius: var(--radius-md); border: 1px solid var(--color-border);
+      padding: 0 var(--space-3); font-size: var(--text-sm); color: var(--color-text-muted);
+      display: flex; align-items: center; background: var(--color-surface-2);
+    }
+    .input-mock { min-width: 220px; flex: 1; }
+    .select-mock { min-width: 160px; }
+
+    .patient-list { display: flex; flex-direction: column; gap: var(--space-3); }
+    .patient-card {
+      border-radius: var(--radius-lg); border: 1px solid var(--color-border);
+      background: var(--color-surface-2); padding: var(--space-3);
+      display: grid; grid-template-columns: 1.6fr 1fr auto; gap: var(--space-3); align-items: center;
+    }
+    .patient-main { display: flex; flex-direction: column; gap: var(--space-1); }
+    .patient-name { font-size: var(--text-base); font-weight: 600; }
+    .patient-meta { font-size: var(--text-sm); color: var(--color-text-muted); }
+    .tag-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .tag {
+      font-size: var(--text-xs); padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-full); background: var(--color-surface-offset);
+      color: var(--color-text-muted);
+    }
+    .tag.high { background: rgba(150,66,25,0.12); color: #964219; }
+    .tag.ready { background: rgba(67,122,34,0.12); color: #437a22; }
+
+    .stage { font-size: var(--text-xs); color: var(--color-text-muted); display: flex; flex-direction: column; gap: var(--space-1); }
+    .stage-track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-1); }
+    .stage-node { height: 6px; border-radius: var(--radius-full); background: var(--color-divider); }
+    .stage-node.done { background: var(--color-primary); }
+    .stage-node.current { background: rgba(1,105,111,0.5); }
+
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+    .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
+    .label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); }
+    .field-mock {
+      min-height: 40px; border-radius: var(--radius-md); border: 1px dashed var(--color-border);
+      background: var(--color-surface-2); padding: 0 var(--space-3); display: flex; align-items: center;
+      font-size: var(--text-sm); color: var(--color-text-faint);
+    }
+    .field-area { min-height: 80px; align-items: flex-start; padding-top: var(--space-2); }
+
+    .journey { display: grid; gap: var(--space-3); }
+    .journey-step { display: grid; grid-template-columns: 32px 1fr; gap: var(--space-3); align-items: flex-start; }
+    .step-num {
+      width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--color-border);
+      display: flex; align-items: center; justify-content: center; font-size: var(--text-xs);
+      color: var(--color-primary); background: var(--color-surface-offset);
+    }
+    .step-card { border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: var(--color-surface-2); padding: var(--space-3); }
+    .step-card h3 { font-size: var(--text-sm); margin-bottom: var(--space-1); }
+    .step-card p { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+    .visit-shell { border-radius: var(--radius-lg); border: 1px solid var(--color-border); overflow: hidden; background: var(--color-surface-2); }
+    .visit-tabs { display: flex; border-bottom: 1px solid var(--color-divider); overflow-x: auto; }
+    .visit-tab { padding: var(--space-2) var(--space-3); font-size: var(--text-xs); border-right: 1px solid var(--color-divider); color: var(--color-text-muted); white-space: nowrap; }
+    .visit-tab.active { background: var(--color-surface); color: var(--color-primary); font-weight: 600; }
+    .visit-body { padding: var(--space-3); display: grid; gap: var(--space-2); }
+    .line { height: 8px; border-radius: var(--radius-full); background: var(--color-divider); }
+    .line.short { width: 40%; }
+    .line.mid { width: 65%; }
+    .line.full { width: 100%; }
+
+    .two-col { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: var(--space-4); }
+
+    .summary-list { display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--text-sm); }
+    .summary-row { display: flex; justify-content: space-between; gap: var(--space-3); border-bottom: 1px solid var(--color-divider); padding-bottom: var(--space-2); }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-label { color: var(--color-text-muted); }
+    .summary-value { font-weight: 500; }
+
+    .footer-note { padding: 0 var(--space-6) var(--space-6); font-size: var(--text-xs); color: var(--color-text-muted); }
+
+    .mobile-toggle { display: none; }
+
+    /* Patient portal styles (reuse tokens) */
+    .portal-hero { display:flex; flex-direction:column; gap:var(--space-3); margin-bottom:var(--space-4); }
+    .portal-actions { display:flex; flex-wrap:wrap; gap:var(--space-3); }
+    .portal-section-title { font-size: var(--text-sm); font-weight:600; margin-bottom:var(--space-2); }
+    .portal-card { border-radius:var(--radius-lg); border:1px solid var(--color-border); background:var(--color-surface-2); padding:var(--space-3); display:flex; flex-direction:column; gap:var(--space-1); font-size:var(--text-sm); }
+
+    @media (max-width: 1024px) {
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .two-col { grid-template-columns: 1fr; }
+      .patient-card { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { position: fixed; inset: 0 auto 0 0; width: 260px; transform: translateX(-100%); transition: transform 160ms ease; z-index: 10; }
+      .sidebar.open { transform: translateX(0); }
+      .topbar { padding-inline: var(--space-4); }
+      .content { padding: var(--space-4); }
+      .mobile-toggle { display: inline-flex; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="logo">
+        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="6" y="8" width="36" height="32" rx="10" stroke="currentColor" stroke-width="3" fill="none" />
+          <path d="M24 15v18M15 24h18" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        </svg>
+        <div>
+          <div class="logo-title">CareFlow</div>
+          <div class="logo-sub">Urgent care SaaS mock</div>
+        </div>
+      </div>
+
+      <nav class="nav-section" style="margin-top: var(--space-4);">
+        <div class="nav-label">Clinic workflow</div>
+        <button class="nav-item active" data-screen="dashboard">
+          <span class="nav-icon"></span>Operations dashboard
+        </button>
+        <button class="nav-item" data-screen="checkin">
+          <span class="nav-icon"></span>Patient check-in
+        </button>
+        <button class="nav-item" data-screen="triage">
+          <span class="nav-icon"></span>Triage
+        </button>
+        <button class="nav-item" data-screen="provider">
+          <span class="nav-icon"></span>Provider chart
+        </button>
+        <button class="nav-item" data-screen="diagnostics">
+          <span class="nav-icon"></span>Diagnostics
+        </button>
+        <button class="nav-item" data-screen="discharge">
+          <span class="nav-icon"></span>Discharge & billing
+        </button>
+        <button class="nav-item" data-screen="reports">
+          <span class="nav-icon"></span>Command center
+        </button>
+      </nav>
+
+      <nav class="nav-section">
+        <div class="nav-label">Patient experience</div>
+        <button class="nav-item" data-screen="portal">
+          <span class="nav-icon"></span>Patient portal preview
+        </button>
+        <button class="nav-item" data-screen="emr">
+          <span class="nav-icon"></span>Patient EMR profile
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        Low-fidelity clickable mock – flows and layout, not final branding.
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="pill">Urgent care · End-to-end visit flow</div>
+          <div class="page-title" id="pageTitle">Operations dashboard</div>
+          <div class="page-subtitle" id="pageSubtitle">Live queue and visit stages for the whole clinic.</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost mobile-toggle" id="menuToggle">Menu</button>
+          <button class="btn btn-ghost" id="themeToggle">Dark mode</button>
+          <button class="btn btn-primary" data-screen="checkin">+ New walk-in</button>
+        </div>
+      </header>
+
+      <section class="content">
+        <!-- DASHBOARD -->
+        <section class="screen active" id="screen-dashboard">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Queue snapshot</div>
+                <div class="panel-note">Core operational KPIs for this shift.</div>
+              </div>
+              <div class="pill">Updated 2 min ago</div>
+            </div>
+            <div class="panel-body">
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <div class="metric-label">Waiting</div>
+                  <div class="metric-value">14</div>
+                  <div class="metric-foot">4 high priority</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">In triage</div>
+                  <div class="metric-value">6</div>
+                  <div class="metric-foot">Avg 7 min</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">With provider</div>
+                  <div class="metric-value">9</div>
+                  <div class="metric-foot">3 rooms open</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Ready to discharge</div>
+                  <div class="metric-value">5</div>
+                  <div class="metric-foot">2 waiting for payment</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Live patient board</div>
+                <div class="panel-note">Single list for front desk, triage, providers, and billing.</div>
+              </div>
+              <div class="pill">Filters are non-functional in this mock.</div>
+            </div>
+            <div class="panel-body">
+              <div class="toolbar">
+                <div class="input-mock">Search name, MRN, mobile</div>
+                <div class="select-mock">Status: All</div>
+                <div class="select-mock">Provider: Any</div>
+              </div>
+              <div class="patient-list">
+                <div class="patient-card">
+                  <div class="patient-main">
+                    <div class="patient-name">Ayesha Khan · 32 F</div>
+                    <div class="patient-meta">Walk-in · Fever, sore throat · Arrived 08:12</div>
+                    <div class="tag-row">
+                      <span class="tag high">High priority</span>
+                      <span class="tag">Insurance verified</span>
+                      <span class="tag">Rapid strep ordered</span>
+                    </div>
+                  </div>
+                  <div class="stage">
+                    <div>Current stage: With provider</div>
+                    <div class="stage-track">
+                      <div class="stage-node done"></div>
+                      <div class="stage-node done"></div>
+                      <div class="stage-node current"></div>
+                      <div class="stage-node"></div>
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost" data-screen="provider">Open chart</button>
+                </div>
+
+                <div class="patient-card">
+                  <div class="patient-main">
+                    <div class="patient-name">Bilal Ahmed · 9 M</div>
+                    <div class="patient-meta">Online booking · Wrist injury · Arrived 08:25</div>
+                    <div class="tag-row">
+                      <span class="tag">Checked in</span>
+                      <span class="tag">X-ray pending</span>
+                    </div>
+                  </div>
+                  <div class="stage">
+                    <div>Current stage: Diagnostics</div>
+                    <div class="stage-track">
+                      <div class="stage-node done"></div>
+                      <div class="stage-node done"></div>
+                      <div class="stage-node current"></div>
+                      <div class="stage-node"></div>
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost" data-screen="diagnostics">Track visit</button>
+                </div>
+
+                <div class="patient-card">
+                  <div class="patient-main">
+                    <div class="patient-name">Sara Iqbal · 44 F</div>
+                    <div class="patient-meta">Walk-in · Migraine · Arrived 08:37</div>
+                    <div class="tag-row">
+                      <span class="tag ready">Ready to discharge</span>
+                      <span class="tag">Rx prepared</span>
+                    </div>
+                  </div>
+                  <div class="stage">
+                    <div>Current stage: Checkout</div>
+                    <div class="stage-track">
+                      <div class="stage-node done"></div>
+                      <div class="stage-node done"></div>
+                      <div class="stage-node done"></div>
+                      <div class="stage-node current"></div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" data-screen="discharge">Close visit</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- CHECK-IN -->
+        <section class="screen" id="screen-checkin">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Patient check-in</div>
+                <div class="panel-note">Front desk workflow for walk-ins and appointments.</div>
+              </div>
+              <div class="pill">Step 1 · Arrival & registration</div>
+            </div>
+            <div class="panel-body">
+              <div class="toolbar" style="margin-bottom: var(--space-3);">
+                <div class="select-mock">Visit type: Walk-in</div>
+                <div class="select-mock">Location: Main clinic</div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <div class="label">Search existing patient</div>
+                  <div class="field-mock">Name / MRN / mobile</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">New patient?</div>
+                  <div class="field-mock">Toggle · creates new profile</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Demographics</div>
+                  <div class="field-mock">Name · DOB · Gender</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Contact</div>
+                  <div class="field-mock">Mobile · Email</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Insurance</div>
+                  <div class="field-mock">Plan · Member ID · eligibility check</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Reason for visit</div>
+                  <div class="field-mock field-area">Free-text + quick-pick complaints</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Consent</div>
+                  <div class="field-mock">Treatment · financial · privacy</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Co-pay</div>
+                  <div class="field-mock">Amount · payment method</div>
+                </div>
+              </div>
+              <div style="margin-top: var(--space-4); display:flex; justify-content:flex-end; gap: var(--space-3);">
+                <button class="btn btn-ghost" data-screen="dashboard">Cancel</button>
+                <button class="btn btn-primary" data-screen="triage">Check in & send to triage</button>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- TRIAGE -->
+        <section class="screen" id="screen-triage">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Triage</div>
+                <div class="panel-note">Vitals, complaint details, and acuity scoring.</div>
+              </div>
+              <div class="pill">Step 2 · Nurse / MA workflow</div>
+            </div>
+            <div class="panel-body">
+              <div class="toolbar" style="margin-bottom: var(--space-3);">
+                <div class="select-mock">Patient: Ayesha Khan</div>
+                <div class="select-mock">Triage room 3</div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <div class="label">Vitals</div>
+                  <div class="field-mock field-area">Temp · BP · HR · RR · O2</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Chief complaint</div>
+                  <div class="field-mock field-area">Free-text + structured fields</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Onset & duration</div>
+                  <div class="field-mock">Started · duration</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Allergies</div>
+                  <div class="field-mock">Known allergies</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Acuity / priority</div>
+                  <div class="field-mock">Scale + color-coded level</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Room assignment</div>
+                  <div class="field-mock">Room selection · waiting area</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Nurse notes</div>
+                  <div class="field-mock field-area">Free-text notes</div>
+                </div>
+              </div>
+              <div style="margin-top: var(--space-4); display:flex; justify-content:space-between; gap: var(--space-3);">
+                <button class="btn btn-ghost" data-screen="dashboard">Back to board</button>
+                <div style="display:flex; gap: var(--space-3);">
+                  <button class="btn btn-ghost" data-screen="dashboard">Save & keep waiting</button>
+                  <button class="btn btn-primary" data-screen="provider">Send to provider</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- PROVIDER -->
+        <section class="screen" id="screen-provider">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Provider chart</div>
+                <div class="panel-note">Complaint-driven documentation during busy shifts.</div>
+              </div>
+              <div class="pill">Step 3 · Consultation & orders</div>
+            </div>
+            <div class="panel-body two-col">
+              <div class="visit-shell">
+                <div class="visit-tabs">
+                  <div class="visit-tab active">Overview</div>
+                  <div class="visit-tab">SOAP</div>
+                  <div class="visit-tab">Orders</div>
+                  <div class="visit-tab">Medications</div>
+                  <div class="visit-tab">Discharge</div>
+                </div>
+                <div class="visit-body">
+                  <div class="line short"></div>
+                  <div class="line full"></div>
+                  <div class="line full"></div>
+                  <div class="line mid"></div>
+                  <div class="line full"></div>
+                </div>
+              </div>
+              <div class="visit-shell">
+                <div class="visit-body">
+                  <div class="pill">Clinical quick actions</div>
+                  <div class="field-mock field-area">Quick orders: rapid test, X-ray, injection, nebulizer</div>
+                  <div class="field-mock field-area">Suggested ICD-10 / CPT (future automation)</div>
+                  <div class="field-mock field-area">Discharge prep: instructions, follow-up, pharmacy</div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-body" style="display:flex; justify-content:space-between; gap:var(--space-3);">
+              <button class="btn btn-ghost" data-screen="dashboard">Back to board</button>
+              <div style="display:flex; gap:var(--space-3);">
+                <button class="btn btn-ghost" data-screen="diagnostics">Order diagnostics</button>
+                <button class="btn btn-primary" data-screen="discharge">Ready to discharge</button>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- DIAGNOSTICS -->
+        <section class="screen" id="screen-diagnostics">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Diagnostics</div>
+                <div class="panel-note">Manage lab tests and imaging for visits.</div>
+              </div>
+              <div class="pill">Step 3a · Orders & results</div>
+            </div>
+            <div class="panel-body">
+              <div class="toolbar">
+                <div class="select-mock">Patient: Bilal Ahmed</div>
+                <div class="select-mock">Visit: Wrist injury</div>
+              </div>
+              <div class="two-col">
+                <div>
+                  <div class="label">Orders</div>
+                  <div class="field-mock field-area">Pending orders list · add new order</div>
+                  <div style="margin-top:var(--space-3);" class="label">Common sets</div>
+                  <div class="field-mock">Sprain / fracture set · respiratory set</div>
+                </div>
+                <div>
+                  <div class="label">Results</div>
+                  <div class="field-mock field-area">Rapid test results, X-ray reports, attachments</div>
+                  <div style="margin-top:var(--space-3);" class="label">Provider sign-off</div>
+                  <div class="field-mock">Mark reviewed · add note to chart</div>
+                </div>
+              </div>
+              <div style="margin-top: var(--space-4); display:flex; justify-content:space-between; gap: var(--space-3);">
+                <button class="btn btn-ghost" data-screen="dashboard">Back to board</button>
+                <div style="display:flex; gap: var(--space-3);">
+                  <button class="btn btn-ghost" data-screen="provider">Back to provider</button>
+                  <button class="btn btn-primary" data-screen="discharge">Results complete · go to discharge</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- DISCHARGE -->
+        <section class="screen" id="screen-discharge">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Discharge & billing</div>
+                <div class="panel-note">Close the visit with instructions, Rx, and payment.</div>
+              </div>
+              <div class="pill">Step 4 · Visit closeout</div>
+            </div>
+            <div class="panel-body two-col">
+              <div>
+                <div class="form-group">
+                  <div class="label">Discharge instructions</div>
+                  <div class="field-mock field-area">Template + free-text instructions</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Follow-up</div>
+                  <div class="field-mock">Recommended? · when · with whom</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Prescriptions</div>
+                  <div class="field-mock field-area">Medication list · pharmacy selection</div>
+                </div>
+              </div>
+              <div>
+                <div class="label">Billing summary</div>
+                <div class="summary-list">
+                  <div class="summary-row">
+                    <span class="summary-label">Procedures</span>
+                    <span class="summary-value">Consult, tests, treatments</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="summary-label">Insurance coverage</span>
+                    <span class="summary-value">Estimated · eligibility checked</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="summary-label">Patient responsibility</span>
+                    <span class="summary-value">Co-pay + additional amount</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="summary-label">Payment</span>
+                    <span class="summary-value">Method selection + status</span>
+                  </div>
+                </div>
+                <div style="margin-top: var(--space-4); display:flex; flex-direction:column; gap: var(--space-2);">
+                  <div class="label">Claim status</div>
+                  <div class="field-mock">Mark encounter as claim-ready (Phase 2: send claim)</div>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-body" style="display:flex; justify-content:space-between; gap:var(--space-3);">
+              <button class="btn btn-ghost" data-screen="dashboard">Back to board</button>
+              <div style="display:flex; gap:var(--space-3);">
+                <button class="btn btn-ghost" data-screen="dashboard">Save as draft</button>
+                <button class="btn btn-primary" data-screen="dashboard">Complete visit</button>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- REPORTS -->
+        <section class="screen" id="screen-reports">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Command center</div>
+                <div class="panel-note">Lightweight MVP reporting for operations.</div>
+              </div>
+              <div class="pill">Phase 1 · Simple operational view</div>
+            </div>
+            <div class="panel-body">
+              <div class="form-grid" style="margin-bottom: var(--space-4);">
+                <div class="form-group">
+                  <div class="label">Date range</div>
+                  <div class="field-mock">Today · yesterday · custom</div>
+                </div>
+                <div class="form-group">
+                  <div class="label">Location</div>
+                  <div class="field-mock">Single or multi-site</div>
+                </div>
+              </div>
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <div class="metric-label">Total visits</div>
+                  <div class="metric-value">48</div>
+                  <div class="metric-foot">Walk-in vs booked</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Avg door-to-discharge</div>
+                  <div class="metric-value">62 min</div>
+                  <div class="metric-foot">Target: &lt; 75 min</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Max waiting</div>
+                  <div class="metric-value">34 min</div>
+                  <div class="metric-foot">High priority first</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Revenue (rough)</div>
+                  <div class="metric-value">$ · · ·</div>
+                  <div class="metric-foot">Detailed RCM in phase 2</div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- PATIENT PORTAL -->
+        <section class="screen" id="screen-portal">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Patient portal – preview</div>
+                <div class="panel-note">Client-facing experience: booking, queue, and records.</div>
+              </div>
+              <div class="pill">US urgent-care patients</div>
+            </div>
+            <div class="panel-body">
+              <div class="portal-hero">
+                <h2 style="font-size:var(--text-lg);">Need urgent care today?</h2>
+                <p style="font-size:var(--text-sm); color:var(--color-text-muted); max-width:40rem;">
+                  Book a time or join the walk-in queue, complete your forms online, and spend less time in the waiting room.
+                </p>
+                <div class="portal-actions">
+                  <button class="btn btn-primary">Book a visit</button>
+                  <button class="btn btn-ghost">Join walk-in queue</button>
+                </div>
+              </div>
+
+              <div class="two-col">
+                <div>
+                  <div class="portal-section-title">Upcoming visit</div>
+                  <div class="portal-card">
+                    <div><strong>Today · 8:45 PM</strong> · Main Clinic</div>
+                    <div>Reason: Fever, sore throat</div>
+                    <div style="font-size:var(--text-xs); color:var(--color-text-muted);">
+                      Estimated wait on arrival: 20–30 minutes.
+                    </div>
+                    <div style="margin-top:var(--space-2); display:flex; gap:var(--space-2);">
+                      <button class="btn btn-primary" style="min-height:32px; padding:0 var(--space-3); font-size:var(--text-xs);">Complete pre-visit forms</button>
+                      <button class="btn btn-ghost" style="min-height:32px; padding:0 var(--space-3); font-size:var(--text-xs);">Reschedule</button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="portal-section-title">Past visits</div>
+                  <div class="portal-card">
+                    <div><strong>Jan 3, 2026</strong> · URI / Flu-like illness</div>
+                    <div style="font-size:var(--text-xs); color:var(--color-text-muted);">Completed · Visit summary, discharge instructions.</div>
+                    <div style="margin-top:var(--space-2); display:flex; gap:var(--space-2);">
+                      <button class="btn btn-ghost" style="min-height:32px; padding:0 var(--space-3); font-size:var(--text-xs);">View summary</button>
+                      <button class="btn btn-ghost" style="min-height:32px; padding:0 var(--space-3); font-size:var(--text-xs);">Download</button>
+                    </div>
+                  </div>
+                  <div class="portal-card">
+                    <div><strong>Aug 20, 2025</strong> · Ankle sprain</div>
+                    <div style="font-size:var(--text-xs); color:var(--color-text-muted);">Completed · Imaging report, rehab instructions.</div>
+                    <div style="margin-top:var(--space-2); display:flex; gap:var(--space-2);">
+                      <button class="btn btn-ghost" style="min-height:32px; padding:0 var(--space-3); font-size:var(--text-xs);">View summary</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <!-- EMR PROFILE -->
+        <section class="screen" id="screen-emr">
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <div class="panel-title">Patient EMR profile</div>
+                <div class="panel-note">Longitudinal record for clinical and sharing workflows.</div>
+              </div>
+              <div class="pill">Staff view · EMR layer</div>
+            </div>
+            <div class="panel-body two-col">
+              <div>
+                <div class="label">Patient</div>
+                <div class="portal-card">
+                  <strong>Ayesha Khan · 32 F</strong>
+                  <span>DOB: 1994-11-03</span>
+                  <span>Mobile: (555) 123-4567</span>
+                  <span>Primary pharmacy: Main St Pharmacy</span>
+                </div>
+                <div style="margin-top:var(--space-3);" class="label">Clinical snapshot</div>
+                <div class="portal-card">
+                  <strong>Allergies</strong>
+                  <span>Penicillin (rash)</span>
+                  <strong style="margin-top:var(--space-2);">Active problems</strong>
+                  <span>Mild asthma</span>
+                  <strong style="margin-top:var(--space-2);">Medications</strong>
+                  <span>Albuterol inhaler PRN</span>
+                </div>
+              </div>
+              <div>
+                <div class="label">Encounters</div>
+                <div class="portal-card">
+                  <strong>Today – URI / Fever</strong>
+                  <span style="font-size:var(--text-xs); color:var(--color-text-muted);">Status: In progress (with provider)</span>
+                  <button class="btn btn-ghost" style="margin-top:var(--space-2); min-height:32px; padding:0 var(--space-3); font-size:var(--text-xs);" data-screen="provider">
+                    Open current encounter
+                  </button>
+                </div>
+                <div class="portal-card">
+                  <strong>Jan 3, 2026 – URI / Flu-like illness</strong>
+                  <span style="font-size:var(--text-xs); color:var(--color-text-muted);">Completed · Visit summary, labs, Rx</span>
+                  <button class="btn btn-ghost" style="margin-top:var(--space-2); min-height:32px; padding:0 var(--space-3); font-size:var(--text-xs);">
+                    View encounter summary
+                  </button>
+                </div>
+
+                <div style="margin-top:var(--space-3);" class="label">Share record</div>
+                <div class="portal-card">
+                  <span style="font-size:var(--text-xs); color:var(--color-text-muted);">
+                    Share this patient's visit summary with the patient or an external provider. Access is read-only and time-limited.
+                  </span>
+                  <div style="margin-top:var(--space-2); display:flex; flex-direction:column; gap:var(--space-2);">
+                    <div class="field-mock">Recipient: Patient / External clinician</div>
+                    <div class="field-mock">Access: Summary only / Summary + attachments</div>
+                    <div class="field-mock">Expires: 7 days</div>
+                  </div>
+                  <button class="btn btn-primary" style="margin-top:var(--space-2); min-height:32px; padding:0 var(--space-3); font-size:var(--text-xs);">
+                    Generate secure link
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <footer class="footer-note">
+        This prototype is intentionally low-fidelity: boxes represent fields or components, navigation reflects the real visit flow,
+        and no data is stored. Use as a visual spec for a .NET / React implementation and investor demos.
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    (function() {
+      const html = document.documentElement;
+      const themeToggle = document.getElementById('themeToggle');
+      const menuToggle = document.getElementById('menuToggle');
+      const sidebar = document.getElementById('sidebar');
+      const navButtons = Array.from(document.querySelectorAll('.nav-item, .btn[data-screen]'));
+      const screens = Array.from(document.querySelectorAll('.screen'));
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+
+      const titles = {
+        dashboard: {
+          title: 'Operations dashboard',
+          subtitle: 'Live queue and visit stages for the whole clinic.'
+        },
+        checkin: {
+          title: 'Patient check-in',
+          subtitle: 'Front desk workflow for walk-ins and appointments.'
+        },
+        triage: {
+          title: 'Triage',
+          subtitle: 'Nurse / MA view for vitals, complaint, and acuity.'
+        },
+        provider: {
+          title: 'Provider chart',
+          subtitle: 'Complaint-driven documentation plus quick orders.'
+        },
+        diagnostics: {
+          title: 'Diagnostics',
+          subtitle: 'Ordering and tracking labs and imaging.'
+        },
+        discharge: {
+          title: 'Discharge & billing',
+          subtitle: 'Close out visits with instructions, Rx, and payment.'
+        },
+        reports: {
+          title: 'Command center',
+          subtitle: 'Simple operational metrics for the shift.'
+        },
+        portal: {
+          title: 'Patient portal – preview',
+          subtitle: 'Client-facing booking, queue, and record access.'
+        },
+        emr: {
+          title: 'Patient EMR profile',
+          subtitle: 'Longitudinal record and sharing controls.'
+        }
+      };
+
+      function setTheme(next) {
+        html.setAttribute('data-theme', next);
+        themeToggle.textContent = next === 'dark' ? 'Light mode' : 'Dark mode';
+      }
+
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setTheme(prefersDark ? 'dark' : 'light');
+
+      themeToggle.addEventListener('click', () => {
+        const current = html.getAttribute('data-theme') || 'light';
+        setTheme(current === 'dark' ? 'light' : 'dark');
+      });
+
+      if (menuToggle && sidebar) {
+        menuToggle.addEventListener('click', () => {
+          sidebar.classList.toggle('open');
+        });
+      }
+
+      function activate(screenKey) {
+        screens.forEach(s => {
+          s.classList.toggle('active', s.id === 'screen-' + screenKey);
+        });
+        navButtons.forEach(btn => {
+          const key = btn.getAttribute('data-screen');
+          if (!key) return;
+          if (btn.classList.contains('nav-item')) {
+            btn.classList.toggle('active', key === screenKey);
+          }
+        });
+        const meta = titles[screenKey];
+        if (meta) {
+          pageTitle.textContent = meta.title;
+          pageSubtitle.textContent = meta.subtitle;
+        }
+        if (window.innerWidth <= 768 && sidebar) {
+          sidebar.classList.remove('open');
+        }
+      }
+
+      navButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-screen');
+          if (!key) return;
+          activate(key);
+        });
+      });
+
+      window.activateWireframeScreen = activate;
+    })();
+  </script>
+</body>
+</html>
